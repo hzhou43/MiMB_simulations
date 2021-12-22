@@ -18,10 +18,10 @@
     cd ../src
     make web
 
-## Examples for run linux binary are in L8 directory to get excess chemical potential for L = 8
+## Examples for running linux binary are in L8 directory to get excess chemical potential for L = 8
 ### Run brute-force insertion
     cd L8/bruteforce
-    #genrate scritp for wrapping run.sh with multiple CPUs
+    #genrate script for wrapping run.sh with multiple CPUs
     bash genjobs.sh >jobs.sh
     #the real work
     bash jobs.sh
@@ -29,7 +29,7 @@
     bash col.sh
 ### Run FMAP insertion
     cd L8/fmap
-    #genrate scritp for wrapping run.sh with multiple CPUs
+    #genrate script for wrapping run.sh with multiple CPUs
     bash genjobs.sh >jobs.sh
     #the real work
     bash jobs.sh
