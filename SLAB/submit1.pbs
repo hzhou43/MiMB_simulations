@@ -1,0 +1,60 @@
+#!/bin/bash
+
+#PBS -N lj_slab
+#PBS -l nodes=1:ppn=24
+#PBS -q chem_hzhou43
+#PBS -l walltime=100:00:00
+#PBS -o lj_slab.log
+#PBS -e lj_slab.err
+#PBS -bea
+
+module load apps/hoomd
+module load apps/gnuplot-5.2.4-intel-2018
+
+cd /home/kmazar2/projects/MiMB 
+
+for i in $(seq 0.65 0.05 1.10); do
+	mkdir T${i}
+	cp -r init.py compression.py elong.py equilibration.py T${i}
+	cd T${i}
+	# Randomly place N particles into a large box to create a dilute state
+	python3 init.py 
+	# Compress the system to achieve a density of ~0.7
+	python3 compression.py
+	# Elongate the compressed cubic box to add empty space on the two sides
+	python3 elong.py 
+	# Run simulation at T; generate log file and trajectory file
+	python3 equilibration.py --user="'${i}'"
+	cd ../
+done
+
+for i in $(seq 0.65 0.05 1.10); do
+	cp -r coord.py ik T${i}
+	cd T${i}
+	# Extract particle (x,y,z) coordinates from trajectory file into text file Tcoor.txt
+	python3 coord.py --user="'${i}'"
+	# Calculate the density and pressure profiles with Tcoor.txt as input (ns=Lz/Dz; Mstart, starting snapshot for data analysis)
+	./ik ${i} 1500 500
+	cd ../
+done
+
+# Fit density profile to hyperbolic tangent function
+gnuplot fit.gnu
+# Prepare input file for binodal fit
+rm -rf rho.txt
+for i in $(seq 1 1 10); do
+	awk 'NR=='${i}'' output.txt | awk '{s1=$1;s2=$3}END{print s1, s2}' >> rho.txt
+done
+
+printf '\n%.0s' {1,2} >> rho.txt
+
+for i in $(seq 1 1 10); do
+	awk 'NR=='${i}'' output.txt | awk '{s1=$1;s2=$2}END{print s1, s2}' >> rho.txt
+done
+
+# Fit binodal
+gnuplot binodal.gnu
+# Calculate KB and IK surface tension values, with log file and pressure profile as input
+./surface_tension.sh	
+
+# DONE
